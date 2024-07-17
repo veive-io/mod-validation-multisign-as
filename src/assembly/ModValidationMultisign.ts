@@ -1,12 +1,13 @@
-import { System, Storage, authority, Protobuf, value } from "@koinos/sdk-as";
+import { System, Storage, authority, Protobuf, value, Arrays, Base58 } from "@koinos/sdk-as";
 import { modvalidation, ModValidation, MODULE_VALIDATION_TYPE_ID } from "@veive/mod-validation-as";
 import { modvalidationmultisign } from "./proto/modvalidationmultisign";
 import { IAccount, account } from "@veive/account-as";
 
 const CONFIG_SPACE_ID = 1;
 const ACCOUNT_SPACE_ID = 2;
-const DEFAULT_CONFIG_THRESHOLD : u32 = 1;
-const DEFAULT_ONLY_ENTRY_POINTS : u32[] = [
+const GUARDIANS_SPACE_ID = 3;
+const DEFAULT_CONFIG_THRESHOLD: u32 = 1;
+const DEFAULT_ONLY_ENTRY_POINTS: u32[] = [
   1090552691 // "allow"
 ];
 
@@ -32,6 +33,14 @@ export class ModValidationMultisign extends ModValidation {
       modvalidationmultisign.config_storage.encode,
       () => new modvalidationmultisign.config_storage()
     );
+
+  guardians: Storage.Map<Uint8Array, modvalidationmultisign.guardians> = new Storage.Map(
+    System.getContractId(),
+    GUARDIANS_SPACE_ID,
+    modvalidationmultisign.guardians.decode,
+    modvalidationmultisign.guardians.encode,
+    () => new modvalidationmultisign.guardians()
+  );
 
   /**
    * Validate operation by checking allowance
@@ -80,7 +89,7 @@ export class ModValidationMultisign extends ModValidation {
       } else {
         System.log(`[mod-validation-multisign] check signature succeeded`);
       }
-      
+
     } else {
       System.log(`[mod-validation-multisign] check signature skipped`);
     }
@@ -210,5 +219,58 @@ export class ModValidationMultisign extends ModValidation {
    */
   _get_account_id(): Uint8Array {
     return this.account_id.get()!.value!;
+  }
+
+  /**
+   * Add a guardian
+   * @external
+   */
+  add_guardian(args: modvalidationmultisign.add_guardian_args): modvalidationmultisign.add_guardian_result {
+    const isAuthorized = System.checkAuthority(authority.authorization_type.contract_call, args.user!);
+    System.require(isAuthorized, `not authorized by ${Base58.encode(args.user!)}`);
+    
+    const userGuardians = this.guardians.get(args.user!) || new modvalidationmultisign.guardians();
+
+    for (let i = 0; i < userGuardians.guardians.length; i++) {
+      if (Arrays.equal(userGuardians.guardians[i].address, args.address)) {
+        System.fail(`guardian already present`);
+      }
+    }
+
+    userGuardians.guardians.push(new modvalidationmultisign.guardian(args.address));
+    this.guardians.put(args.user!, userGuardians);
+    return new modvalidationmultisign.add_guardian_result();
+  }
+
+  /**
+   * Remove a guardian
+   * @external
+   */
+  remove_guardian(args: modvalidationmultisign.remove_guardian_args): modvalidationmultisign.remove_guardian_result {
+    const isAuthorized = System.checkAuthority(authority.authorization_type.contract_call, args.user!);
+    System.require(isAuthorized, `not authorized by ${Base58.encode(args.user!)}`);
+
+    const userGuardians = this.guardians.get(args.user!);
+    if (userGuardians) {
+      let updatedGuardians = new Array<modvalidationmultisign.guardian>();
+      for (let i = 0; i < userGuardians.guardians.length; i++) {
+        if (!Arrays.equal(userGuardians.guardians[i].address, args.address)) {
+          updatedGuardians.push(userGuardians.guardians[i]);
+        }
+      }
+      userGuardians.guardians = updatedGuardians;
+      this.guardians.put(args.user!, userGuardians);
+    }
+    return new modvalidationmultisign.remove_guardian_result();
+  }
+
+  /**
+   * Get all guardians
+   * @readonly
+   * @external
+   */
+  get_guardians(args: modvalidationmultisign.get_guardians_args): modvalidationmultisign.get_guardians_result {
+    const userGuardians = this.guardians.get(args.user!) || new modvalidationmultisign.guardians();
+    return new modvalidationmultisign.get_guardians_result(userGuardians.guardians);
   }
 }
