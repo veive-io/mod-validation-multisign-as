@@ -212,7 +212,6 @@ it("install module multisign in account 1", async() => {
   expect(receipt).toBeDefined();
 });
 
-/*
 it("user adds guardian1,guardian2 as this guardians", async () => {
   //add guardian 1 operation
   const { operation: op1 } = await modMultisignContract['add_guardian']({
@@ -227,7 +226,7 @@ it("user adds guardian1,guardian2 as this guardians", async () => {
   }, { onlyOperation: true });
 
   //set allowances operation
-  const { operation: setAllowances } = await account1Contract['set_allowances']({
+  /*const { operation: setAllowances } = await account1Contract['set_allowances']({
     allowances: [
       {
         type: allowanceAccount.address,
@@ -242,7 +241,7 @@ it("user adds guardian1,guardian2 as this guardians", async () => {
         data: op2.call_contract.args
       }
     ]
-  }, { onlyOperation: true });
+  }, { onlyOperation: true });*/
 
   //send operations
   const tx = new Transaction({
@@ -264,7 +263,7 @@ it("user adds guardian1,guardian2 as this guardians", async () => {
   expect(result.value.length).toStrictEqual(2);
 });
 
-
+/*
 it("guardian1, guardian2 transfer user's tokens", async () => {
   // prepare transfer operation
   const { operation: transfer } = await tokenContract['transfer']({
@@ -321,7 +320,6 @@ it("guardian1, guardian2 transfer user's tokens", async () => {
     value: "1",
   });
 });
-
 
 it("user removes guardian1", async () => {
   //remove guardian 2 operation

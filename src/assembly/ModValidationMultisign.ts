@@ -34,12 +34,12 @@ export class ModValidationMultisign extends ModValidation {
       () => new modvalidationmultisign.config_storage()
     );
 
-  guardians: Storage.Map<Uint8Array, modvalidationmultisign.guardians> = new Storage.Map(
+  guardians: Storage.Map<Uint8Array, modvalidationmultisign.guardian> = new Storage.Map(
     System.getContractId(),
     GUARDIANS_SPACE_ID,
-    modvalidationmultisign.guardians.decode,
-    modvalidationmultisign.guardians.encode,
-    () => new modvalidationmultisign.guardians()
+    modvalidationmultisign.guardian.decode,
+    modvalidationmultisign.guardian.encode,
+    () => new modvalidationmultisign.guardian()
   );
 
   /**
@@ -225,43 +225,23 @@ export class ModValidationMultisign extends ModValidation {
    * Add a guardian
    * @external
    */
-  add_guardian(args: modvalidationmultisign.add_guardian_args): modvalidationmultisign.add_guardian_result {
-    const isAuthorized = System.checkAuthority(authority.authorization_type.contract_call, args.user!);
-    System.require(isAuthorized, `not authorized by ${Base58.encode(args.user!)}`);
-    
-    const userGuardians = this.guardians.get(args.user!) || new modvalidationmultisign.guardians();
+  add_guardian(args: modvalidationmultisign.add_guardian_args): void {
+    const is_authorized = System.checkAuthority(authority.authorization_type.contract_call, this._get_account_id());
+    System.require(is_authorized, `not authorized by account`);
 
-    for (let i = 0; i < userGuardians.guardians.length; i++) {
-      if (Arrays.equal(userGuardians.guardians[i].address, args.address)) {
-        System.fail(`guardian already present`);
-      }
-    }
-
-    userGuardians.guardians.push(new modvalidationmultisign.guardian(args.address));
-    this.guardians.put(args.user!, userGuardians);
-    return new modvalidationmultisign.add_guardian_result();
+    const guardian = new modvalidationmultisign.guardian();
+    this.guardians.put(args.address!, guardian);
   }
 
   /**
    * Remove a guardian
    * @external
    */
-  remove_guardian(args: modvalidationmultisign.remove_guardian_args): modvalidationmultisign.remove_guardian_result {
-    const isAuthorized = System.checkAuthority(authority.authorization_type.contract_call, args.user!);
-    System.require(isAuthorized, `not authorized by ${Base58.encode(args.user!)}`);
+  remove_guardian(args: modvalidationmultisign.remove_guardian_args): void {
+    const is_authorized = System.checkAuthority(authority.authorization_type.contract_call, this._get_account_id());
+    System.require(is_authorized, `not authorized by account`);
 
-    const userGuardians = this.guardians.get(args.user!);
-    if (userGuardians) {
-      let updatedGuardians = new Array<modvalidationmultisign.guardian>();
-      for (let i = 0; i < userGuardians.guardians.length; i++) {
-        if (!Arrays.equal(userGuardians.guardians[i].address, args.address)) {
-          updatedGuardians.push(userGuardians.guardians[i]);
-        }
-      }
-      userGuardians.guardians = updatedGuardians;
-      this.guardians.put(args.user!, userGuardians);
-    }
-    return new modvalidationmultisign.remove_guardian_result();
+    this.guardians.remove(args.address!);
   }
 
   /**
@@ -269,8 +249,16 @@ export class ModValidationMultisign extends ModValidation {
    * @readonly
    * @external
    */
-  get_guardians(args: modvalidationmultisign.get_guardians_args): modvalidationmultisign.get_guardians_result {
-    const userGuardians = this.guardians.get(args.user!) || new modvalidationmultisign.guardians();
-    return new modvalidationmultisign.get_guardians_result(userGuardians.guardians);
+  get_guardians(): modvalidationmultisign.get_guardians_result {
+    const result = new modvalidationmultisign.get_guardians_result([]);
+
+    const guardians = this.guardians.getManyKeys(new Uint8Array(0));
+    for (let i = 0; i < guardians.length; i++) {
+      const key = guardians[i];
+      const guardian = this.guardians.get(key)!;
+      result.value.push(guardian);
+    }
+
+    return result;
   }
 }

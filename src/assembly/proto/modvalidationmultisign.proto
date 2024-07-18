@@ -34,31 +34,14 @@ message get_threshold {
 }
 
 message guardian {
-   bytes address = 1 [(koinos.btype) = ADDRESS];
-}
-
-message guardians {
-   repeated guardian guardians = 1;
 }
 
 message add_guardian_args {
-   bytes user = 1 [(koinos.btype) = ADDRESS];
    bytes address = 2 [(koinos.btype) = ADDRESS];
-}
-
-message add_guardian_result {
 }
 
 message remove_guardian_args {
-   bytes user = 1 [(koinos.btype) = ADDRESS];
    bytes address = 2 [(koinos.btype) = ADDRESS];
-}
-
-message remove_guardian_result {
-}
-
-message get_guardians_args {
-   bytes user = 1 [(koinos.btype) = ADDRESS];
 }
 
 message get_guardians_result {

@@ -268,14 +268,9 @@ export namespace modvalidationmultisign {
     }
   }
 
+  @unmanaged
   export class guardian {
-    static encode(message: guardian, writer: Writer): void {
-      const unique_name_address = message.address;
-      if (unique_name_address !== null) {
-        writer.uint32(10);
-        writer.bytes(unique_name_address);
-      }
-    }
+    static encode(message: guardian, writer: Writer): void {}
 
     static decode(reader: Reader, length: i32): guardian {
       const end: usize = length < 0 ? reader.end : reader.ptr + length;
@@ -284,7 +279,35 @@ export namespace modvalidationmultisign {
       while (reader.ptr < end) {
         const tag = reader.uint32();
         switch (tag >>> 3) {
-          case 1:
+          default:
+            reader.skipType(tag & 7);
+            break;
+        }
+      }
+
+      return message;
+    }
+
+    constructor() {}
+  }
+
+  export class add_guardian_args {
+    static encode(message: add_guardian_args, writer: Writer): void {
+      const unique_name_address = message.address;
+      if (unique_name_address !== null) {
+        writer.uint32(18);
+        writer.bytes(unique_name_address);
+      }
+    }
+
+    static decode(reader: Reader, length: i32): add_guardian_args {
+      const end: usize = length < 0 ? reader.end : reader.ptr + length;
+      const message = new add_guardian_args();
+
+      while (reader.ptr < end) {
+        const tag = reader.uint32();
+        switch (tag >>> 3) {
+          case 2:
             message.address = reader.bytes();
             break;
 
@@ -304,126 +327,8 @@ export namespace modvalidationmultisign {
     }
   }
 
-  export class guardians {
-    static encode(message: guardians, writer: Writer): void {
-      const unique_name_guardians = message.guardians;
-      for (let i = 0; i < unique_name_guardians.length; ++i) {
-        writer.uint32(10);
-        writer.fork();
-        guardian.encode(unique_name_guardians[i], writer);
-        writer.ldelim();
-      }
-    }
-
-    static decode(reader: Reader, length: i32): guardians {
-      const end: usize = length < 0 ? reader.end : reader.ptr + length;
-      const message = new guardians();
-
-      while (reader.ptr < end) {
-        const tag = reader.uint32();
-        switch (tag >>> 3) {
-          case 1:
-            message.guardians.push(guardian.decode(reader, reader.uint32()));
-            break;
-
-          default:
-            reader.skipType(tag & 7);
-            break;
-        }
-      }
-
-      return message;
-    }
-
-    guardians: Array<guardian>;
-
-    constructor(guardians: Array<guardian> = []) {
-      this.guardians = guardians;
-    }
-  }
-
-  export class add_guardian_args {
-    static encode(message: add_guardian_args, writer: Writer): void {
-      const unique_name_user = message.user;
-      if (unique_name_user !== null) {
-        writer.uint32(10);
-        writer.bytes(unique_name_user);
-      }
-
-      const unique_name_address = message.address;
-      if (unique_name_address !== null) {
-        writer.uint32(18);
-        writer.bytes(unique_name_address);
-      }
-    }
-
-    static decode(reader: Reader, length: i32): add_guardian_args {
-      const end: usize = length < 0 ? reader.end : reader.ptr + length;
-      const message = new add_guardian_args();
-
-      while (reader.ptr < end) {
-        const tag = reader.uint32();
-        switch (tag >>> 3) {
-          case 1:
-            message.user = reader.bytes();
-            break;
-
-          case 2:
-            message.address = reader.bytes();
-            break;
-
-          default:
-            reader.skipType(tag & 7);
-            break;
-        }
-      }
-
-      return message;
-    }
-
-    user: Uint8Array | null;
-    address: Uint8Array | null;
-
-    constructor(
-      user: Uint8Array | null = null,
-      address: Uint8Array | null = null
-    ) {
-      this.user = user;
-      this.address = address;
-    }
-  }
-
-  @unmanaged
-  export class add_guardian_result {
-    static encode(message: add_guardian_result, writer: Writer): void {}
-
-    static decode(reader: Reader, length: i32): add_guardian_result {
-      const end: usize = length < 0 ? reader.end : reader.ptr + length;
-      const message = new add_guardian_result();
-
-      while (reader.ptr < end) {
-        const tag = reader.uint32();
-        switch (tag >>> 3) {
-          default:
-            reader.skipType(tag & 7);
-            break;
-        }
-      }
-
-      return message;
-    }
-
-    constructor() {}
-  }
-
   export class remove_guardian_args {
     static encode(message: remove_guardian_args, writer: Writer): void {
-      const unique_name_user = message.user;
-      if (unique_name_user !== null) {
-        writer.uint32(10);
-        writer.bytes(unique_name_user);
-      }
-
       const unique_name_address = message.address;
       if (unique_name_address !== null) {
         writer.uint32(18);
@@ -438,10 +343,6 @@ export namespace modvalidationmultisign {
       while (reader.ptr < end) {
         const tag = reader.uint32();
         switch (tag >>> 3) {
-          case 1:
-            message.user = reader.bytes();
-            break;
-
           case 2:
             message.address = reader.bytes();
             break;
@@ -455,74 +356,10 @@ export namespace modvalidationmultisign {
       return message;
     }
 
-    user: Uint8Array | null;
     address: Uint8Array | null;
 
-    constructor(
-      user: Uint8Array | null = null,
-      address: Uint8Array | null = null
-    ) {
-      this.user = user;
+    constructor(address: Uint8Array | null = null) {
       this.address = address;
-    }
-  }
-
-  @unmanaged
-  export class remove_guardian_result {
-    static encode(message: remove_guardian_result, writer: Writer): void {}
-
-    static decode(reader: Reader, length: i32): remove_guardian_result {
-      const end: usize = length < 0 ? reader.end : reader.ptr + length;
-      const message = new remove_guardian_result();
-
-      while (reader.ptr < end) {
-        const tag = reader.uint32();
-        switch (tag >>> 3) {
-          default:
-            reader.skipType(tag & 7);
-            break;
-        }
-      }
-
-      return message;
-    }
-
-    constructor() {}
-  }
-
-  export class get_guardians_args {
-    static encode(message: get_guardians_args, writer: Writer): void {
-      const unique_name_user = message.user;
-      if (unique_name_user !== null) {
-        writer.uint32(10);
-        writer.bytes(unique_name_user);
-      }
-    }
-
-    static decode(reader: Reader, length: i32): get_guardians_args {
-      const end: usize = length < 0 ? reader.end : reader.ptr + length;
-      const message = new get_guardians_args();
-
-      while (reader.ptr < end) {
-        const tag = reader.uint32();
-        switch (tag >>> 3) {
-          case 1:
-            message.user = reader.bytes();
-            break;
-
-          default:
-            reader.skipType(tag & 7);
-            break;
-        }
-      }
-
-      return message;
-    }
-
-    user: Uint8Array | null;
-
-    constructor(user: Uint8Array | null = null) {
-      this.user = user;
     }
   }
 
