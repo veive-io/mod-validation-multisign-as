@@ -16,132 +16,66 @@ jest.setTimeout(600000);
 const localKoinos = new LocalKoinos();
 const provider = localKoinos.getProvider() as unknown as Provider;
 
-const modMultisign = new Signer({
-  privateKey: randomBytes(32).toString("hex"),
-  provider,
-});
 
-const mod = new Contract({
-  id: modMultisign.getAddress(),
-  abi: modAbi,
-  provider,
-});
+const mod = _generate_account(modAbi);
+const modValidationSignature = _generate_account(modValidationSignatureAbi);
+const account1 = _generate_account(accountAbi);
+const account2 = _generate_account(accountAbi);
+const guardian1 = _generate_account(accountAbi);
+const guardian2 = _generate_account(accountAbi);
 
-const modMultisignContract = mod.functions;
-const modMultisignSerializer = mod.serializer;
+const account1_modSignEcdsa = _generate_account(modSignEcdsaAbi);
+const guardian1_modSignEcdsa = _generate_account(modSignEcdsaAbi);
+const guardian2_modSignEcdsa = _generate_account(modSignEcdsaAbi);
 
-const modValidationSignatureSign = new Signer({
-  privateKey: randomBytes(32).toString("hex"),
-  provider,
-});
+const token = _generate_account(utils.tokenAbi);
 
-const modValidationSignature = new Contract({
-  id: modMultisign.getAddress(),
-  abi: modValidationSignatureAbi,
-  provider,
-});
-
-const modValidationSignatureContract = modValidationSignature.functions;
-const modValidationSignatureSerializer = modValidationSignature.serializer;
-
-
-const account1Sign = new Signer({
-  privateKey: randomBytes(32).toString("hex"),
-  provider,
-});
-
-const account1ModEcdsa = new Signer({
-  privateKey: randomBytes(32).toString("hex"),
-  provider,
-});
-
-const account2Sign = new Signer({
-  privateKey: randomBytes(32).toString("hex"),
-  provider,
-});
-
-const guardian1Sign = new Signer({
-  privateKey: randomBytes(32).toString("hex"),
-  provider,
-});
-
-const guardian1ModEcdsa = new Signer({
-  privateKey: randomBytes(32).toString("hex"),
-  provider,
-});
-
-const guardian2Sign = new Signer({
-  privateKey: randomBytes(32).toString("hex"),
-  provider,
-});
-
-const guardian2ModEcdsa = new Signer({
-  privateKey: randomBytes(32).toString("hex"),
-  provider,
-});
-
-const tokenSign = new Signer({
-  privateKey: randomBytes(32).toString("hex"),
-  provider,
-});
-
-const account1Contract = new Contract({
-  id: account1Sign.getAddress(),
-  abi: accountAbi,
-  provider,
-}).functions;
-
-const tokenContract = new Contract({
-  id: tokenSign.getAddress(),
-  abi: utils.tokenAbi,
-  provider,
-}).functions;
 
 beforeAll(async () => {
   // start local-koinos node
   await localKoinos.startNode();
   await localKoinos.startBlockProduction();
 
-  await _deploy_account(account1Sign);
-  await _deploy_account(guardian1Sign);
-  await _deploy_account(guardian2Sign);
+  await _deploy_account(account1.signer);
+  await _deploy_account(guardian1.signer);
+  await _deploy_account(guardian2.signer);
 
-  await _deploy_mod_ecdsa(account1ModEcdsa);
-  await _deploy_mod_ecdsa(guardian1ModEcdsa);
-  await _deploy_mod_ecdsa(guardian2ModEcdsa);
+  await _deploy_mod_ecdsa(account1_modSignEcdsa.signer);
+  await _deploy_mod_ecdsa(guardian1_modSignEcdsa.signer);
+  await _deploy_mod_ecdsa(guardian2_modSignEcdsa.signer);
 
-  await _install_mod_ecdsa(account1ModEcdsa, account1Sign);
-  await _install_mod_ecdsa(guardian1ModEcdsa, guardian1Sign);
-  await _install_mod_ecdsa(guardian2ModEcdsa, guardian2Sign);
+  await _install_mod_ecdsa(account1_modSignEcdsa.signer, account1.signer);
+  await _install_mod_ecdsa(guardian1_modSignEcdsa.signer, guardian1.signer);
+  await _install_mod_ecdsa(guardian2_modSignEcdsa.signer, guardian2.signer);
 
   // deploy token
   await localKoinos.deployContract(
-    tokenSign.getPrivateKey("wif"),
+    token.private_key,
     path.join(__dirname, "../node_modules/@koinosbox/contracts/assembly/token/release/token.wasm"),
     utils.tokenAbi
   );
 
   // deploy module validation signature account 1
   await localKoinos.deployContract(
-    modValidationSignatureSign.getPrivateKey("wif"),
+    modValidationSignature.private_key,
     path.join(__dirname, "../node_modules/@veive/mod-validation-signature-as/dist/release/ModValidationSignature.wasm"),
     modValidationSignatureAbi
   );
 
   // deploy module multisign account 1
   await localKoinos.deployContract(
-    modMultisign.getPrivateKey("wif"),
+    mod.private_key,
     path.join(__dirname, "../build/release/ModValidationMultisign.wasm"),
     modAbi
   );
 
   // mint some tokens to user
   const tx = new Transaction({
-    signer: tokenSign,
+    signer: token.signer,
     provider,
   });
-  await tx.pushOperation(tokenContract["mint"], {
-    to: account1Sign.address,
+  await tx.pushOperation(token.contract["mint"], {
+    to: account1.address,
     value: "123",
   });
   await tx.send();
@@ -152,6 +86,23 @@ afterAll(() => {
   // stop local-koinos node
   localKoinos.stopNode();
 });
+
+
+function _generate_account(abi) {
+  const signer = new Signer({privateKey: randomBytes(32).toString("hex"), provider});
+  const contract = new Contract({
+    id: signer.address,
+    abi,
+    provider,
+  })
+  return {
+    signer: signer,
+    address: signer.address,
+    contract: contract.functions,
+    serializer: contract.serializer,
+    private_key: signer.getPrivateKey("wif")
+  };
+}
 
 async function _deploy_account(sign: Signer) {
   await localKoinos.deployContract(
@@ -207,19 +158,19 @@ async function _install_mod_ecdsa(modSign: Signer, accountSign: Signer) {
 
 
 it("install module validation-signature in account 1, scope default (any operation)", async() => {
-  const scope = await modValidationSignatureSerializer.serialize({
+  const scope = await modValidationSignature.serializer.serialize({
     entry_point: 1
   }, "scope");
 
-  const { operation: install_module } = await account1Contract["install_module"]({
+  const { operation: install_module } = await account1.contract["install_module"]({
     module_type_id: 1,
-    contract_id: modValidationSignatureSign.address,
+    contract_id: modValidationSignature.address,
     scopes: [
       utils.encodeBase64url(scope)
     ]
   }, { onlyOperation: true });
   
-  const { operation: exec } = await account1Contract["execute_user"]({
+  const { operation: exec } = await account1.contract["execute_user"]({
     operation: {
       contract_id: install_module.call_contract.contract_id,
       entry_point: install_module.call_contract.entry_point,
@@ -228,7 +179,7 @@ it("install module validation-signature in account 1, scope default (any operati
   }, { onlyOperation: true });
 
   const tx = new Transaction({
-    signer: account1Sign,
+    signer: account1.signer,
     provider
   });
 
@@ -241,19 +192,19 @@ it("install module validation-signature in account 1, scope default (any operati
 });
 
 it("install module multisign in account 1, scope (entrypoint=transfer)", async() => {
-  const scope = await modMultisignSerializer.serialize({
+  const scope = await mod.serializer.serialize({
     entry_point: 670398154
   }, "scope")
 
-  const { operation: install_module } = await account1Contract["install_module"]({
+  const { operation: install_module } = await account1.contract["install_module"]({
     module_type_id: 1,
-    contract_id: modMultisign.address,
+    contract_id: mod.address,
     scopes: [
       utils.encodeBase64url(scope)
     ]
   }, { onlyOperation: true });
   
-  const { operation: exec } = await account1Contract["execute_user"]({
+  const { operation: exec } = await account1.contract["execute_user"]({
     operation: {
       contract_id: install_module.call_contract.contract_id,
       entry_point: install_module.call_contract.entry_point,
@@ -262,7 +213,7 @@ it("install module multisign in account 1, scope (entrypoint=transfer)", async()
   }, { onlyOperation: true });
 
   const tx = new Transaction({
-    signer: account1Sign,
+    signer: account1.signer,
     provider
   });
 
@@ -276,20 +227,20 @@ it("install module multisign in account 1, scope (entrypoint=transfer)", async()
 
 it("user adds guardian1,guardian2 as this guardians", async () => {
   //add guardian 1 operation
-  const { operation: op1 } = await modMultisignContract['add_guardian']({
-    user: account1Sign.address,
-    address: guardian1Sign.address
+  const { operation: op1 } = await mod.contract['add_guardian']({
+    user: account1.address,
+    address: guardian1.address
   }, { onlyOperation: true });
 
   //add guardian 2 operation
-  const { operation: op2 } = await modMultisignContract['add_guardian']({
-    user: account1Sign.address,
-    address: guardian2Sign.address
+  const { operation: op2 } = await mod.contract['add_guardian']({
+    user: account1.address,
+    address: guardian2.address
   }, { onlyOperation: true });
 
   //send operations
   const tx = new Transaction({
-    signer: account1Sign,
+    signer: account1.signer,
     provider
   });
   //await tx.pushOperation(setAllowances);
@@ -302,8 +253,8 @@ it("user adds guardian1,guardian2 as this guardians", async () => {
   expect(rc).toBeDefined();
   await tx.wait();
 
-  const { result } = await modMultisignContract["get_guardians"]({
-    user: account1Sign.address
+  const { result } = await mod.contract["get_guardians"]({
+    user: account1.address
   });
 
   expect(result.value.length).toStrictEqual(2);
@@ -312,19 +263,19 @@ it("user adds guardian1,guardian2 as this guardians", async () => {
 
 it("guardian1, guardian2 transfer user's tokens", async () => {
   // prepare transfer operation
-  const { operation: transfer } = await tokenContract['transfer']({
-    from: account1Sign.address,
-    to: account2Sign.address,
+  const { operation: transfer } = await token.contract['transfer']({
+    from: account1.address,
+    to: account2.address,
     value: "1",
   }, { onlyOperation: true });
 
   // send operations
   const tx = new Transaction({
-    signer: guardian1Sign,
+    signer: guardian1.signer,
     provider,
     options: {
       beforeSend: async (tx) => {
-        await guardian2Sign.signTransaction(tx);
+        await guardian2.signer.signTransaction(tx);
       }
     }
   });
@@ -336,15 +287,15 @@ it("guardian1, guardian2 transfer user's tokens", async () => {
   await tx.wait();
 
   // check balances
-  const { result: r1 } = await tokenContract["balanceOf"]({
-    owner: account1Sign.address
+  const { result: r1 } = await token.contract["balanceOf"]({
+    owner: account1.address
   });
   expect(r1).toStrictEqual({
     value: "122",
   });
 
-  const { result: r2 } = await tokenContract["balanceOf"]({
-    owner: account2Sign.address
+  const { result: r2 } = await token.contract["balanceOf"]({
+    owner: account2.address
   });
   expect(r2).toStrictEqual({
     value: "1",
@@ -353,14 +304,14 @@ it("guardian1, guardian2 transfer user's tokens", async () => {
 
 it("user removes guardian1", async () => {
   //remove guardian 2 operation
-  const { operation: removeGuardian } = await modMultisignContract['remove_guardian']({
-    user: account1Sign.address,
-    address: guardian2Sign.address
+  const { operation: removeGuardian } = await mod.contract['remove_guardian']({
+    user: account1.address,
+    address: guardian2.address
   }, { onlyOperation: true });
 
   //send operations
   const tx = new Transaction({
-    signer: account1Sign,
+    signer: account1.signer,
     provider
   });
 
@@ -370,8 +321,8 @@ it("user removes guardian1", async () => {
   expect(rc).toBeDefined();
   await tx.wait();
 
-  const { result } = await modMultisignContract["get_guardians"]({
-    user: account1Sign.address
+  const { result } = await mod.contract["get_guardians"]({
+    user: account1.address
   });
 
   expect(result.value.length).toStrictEqual(1);
