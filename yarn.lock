@@ -1779,10 +1779,47 @@
     koilib "^8.0.0"
     koinos-precompiler-as "^1.6.0"
 
+"@veive/account-as@^1.0.14", "@veive/account-as@^1.0.15":
+  version "1.0.15"
+  resolved "https://registry.yarnpkg.com/@veive/account-as/-/account-as-1.0.15.tgz#14d4eae54bfad68015ba4c4f2a918dbcce066df4"
+  integrity sha512-O2A+KTuPJ1bWG4SiK9K24ed/JSNCcPJr4tdNWk5ZeEiKc+1dL3B/Iv1mOxmddylZuAJQA8CgGEKASmMxGY+zpA==
+  dependencies:
+    "@koinos/sdk-as" "npm:@koinosbox/sdk-as@1.1.0-alpha.4"
+    "@koinosbox/contracts" "^2.1.4"
+    "@koinosbox/hdkoinos" "1.0.1"
+    "@veive/mod-execution-as" "^1.0.9"
+    "@veive/mod-hooks-as" "^1.0.10"
+    "@veive/mod-sign-as" "^1.0.3"
+    "@veive/mod-validation-as" "^1.0.18"
+    koilib "^8.0.0"
+    koinos-precompiler-as "^1.6.0"
+
 "@veive/mod-execution-as@^1.0.6":
   version "1.0.6"
   resolved "https://registry.yarnpkg.com/@veive/mod-execution-as/-/mod-execution-as-1.0.6.tgz#01ec152f74dc68755a0198dce5cd5e0cd30a14d5"
   integrity sha512-NsfqW6X0Dk1j0R53rstna0ph77af95mCFdzUJnzUwB7n7ooKOEmpQ8GbqrF3LvaRjIMbhXSY4o26rCBlI5FlMA==
+  dependencies:
+    "@koinos/sdk-as" "npm:@koinosbox/sdk-as@1.1.0-alpha.4"
+    "@koinosbox/contracts" "^2.1.4"
+    "@koinosbox/hdkoinos" "1.0.1"
+    koilib "^8.0.0"
+    koinos-precompiler-as "^1.6.0"
+
+"@veive/mod-execution-as@^1.0.9":
+  version "1.0.9"
+  resolved "https://registry.yarnpkg.com/@veive/mod-execution-as/-/mod-execution-as-1.0.9.tgz#d10dedb1b5e3eb79a8bdf8f205db584fc0460c34"
+  integrity sha512-MWtpRq42L2TJb7zl3AfE6lVhA05/tROj3/ka0MiEydN1MLBsL+peopI0kBbw1j1u8ekyEz69+oUHa0daRH91vw==
+  dependencies:
+    "@koinos/sdk-as" "npm:@koinosbox/sdk-as@1.1.0-alpha.4"
+    "@koinosbox/contracts" "^2.1.4"
+    "@koinosbox/hdkoinos" "1.0.1"
+    koilib "^8.0.0"
+    koinos-precompiler-as "^1.6.0"
+
+"@veive/mod-hooks-as@^1.0.10":
+  version "1.0.10"
+  resolved "https://registry.yarnpkg.com/@veive/mod-hooks-as/-/mod-hooks-as-1.0.10.tgz#a937f54b97c874b601e56a0496e0f5218d1a2042"
+  integrity sha512-VBHCNAuWKbgFWzOuFNfAo1uKjNm1RDFAqT+HTGbVkfoEDziXT0mSchUCu8qzR9NpTAnfKCGNJ7OB+M7A5usdcA==
   dependencies:
     "@koinos/sdk-as" "npm:@koinosbox/sdk-as@1.1.0-alpha.4"
     "@koinosbox/contracts" "^2.1.4"
@@ -1812,6 +1849,17 @@
     koilib "^8.0.0"
     koinos-precompiler-as "^1.6.0"
 
+"@veive/mod-sign-as@^1.0.3":
+  version "1.0.3"
+  resolved "https://registry.yarnpkg.com/@veive/mod-sign-as/-/mod-sign-as-1.0.3.tgz#0ad462799f5ee6bf46810d71d2978512144f643e"
+  integrity sha512-Jlvwt9OP1oxASdkdXTjzmdoUXzS+QumPWot7XaYLA6oifIK5dkBEn3hFro/ss6hvQSID6mGZaEzVUE2UaAkLGg==
+  dependencies:
+    "@koinos/sdk-as" "npm:@koinosbox/sdk-as@1.1.0-alpha.4"
+    "@koinosbox/contracts" "^2.1.4"
+    "@koinosbox/hdkoinos" "1.0.1"
+    koilib "^8.0.0"
+    koinos-precompiler-as "^1.6.0"
+
 "@veive/mod-sign-ecdsa-as@^1.0.3":
   version "1.0.3"
   resolved "https://registry.yarnpkg.com/@veive/mod-sign-ecdsa-as/-/mod-sign-ecdsa-as-1.0.3.tgz#6b67711b9933afb4f9f579aaac1e255a9adbcfef"
@@ -1833,6 +1881,29 @@
     "@koinosbox/contracts" "^2.1.4"
     "@koinosbox/hdkoinos" "1.0.1"
     koilib "^8.0.0"
+    koinos-precompiler-as "^1.6.0"
+
+"@veive/mod-validation-as@^1.0.18":
+  version "1.0.18"
+  resolved "https://registry.yarnpkg.com/@veive/mod-validation-as/-/mod-validation-as-1.0.18.tgz#cb1049894b27fab216fcf9b3bab814d77ce95c8f"
+  integrity sha512-PnX3Y6twmlJnUSqEqvGcugwTEbDXgzL+CnvbYlslWCe1pM8i/3tfNrMxlevHH4Ik8jGJVXNSPE2Z4xmfdTyKjQ==
+  dependencies:
+    "@koinos/sdk-as" "npm:@koinosbox/sdk-as@1.1.0-alpha.4"
+    "@koinosbox/contracts" "^2.1.4"
+    "@koinosbox/hdkoinos" "1.0.1"
+    koilib "^8.0.0"
+    koinos-precompiler-as "^1.6.0"
+
+"@veive/mod-validation-signature-as@^1.0.2":
+  version "1.0.2"
+  resolved "https://registry.yarnpkg.com/@veive/mod-validation-signature-as/-/mod-validation-signature-as-1.0.2.tgz#32d7211219e577e555495ee255a045abf2152e91"
+  integrity sha512-W1itdVuoaipJClVOjCsh6SBct7jSfVyjHFu7DYN7UdAdkLOIba23tBdFOP0PATi1RM4AUyFAyim/ARx7NlPcwA==
+  dependencies:
+    "@koinos/sdk-as" "npm:@koinosbox/sdk-as@1.1.0-alpha.4"
+    "@koinosbox/contracts" "^2.1.4"
+    "@koinosbox/hdkoinos" "1.0.1"
+    "@veive/account-as" "^1.0.14"
+    koilib "^5.6.1"
     koinos-precompiler-as "^1.6.0"
 
 JSONStream@^1.3.4, JSONStream@^1.3.5:

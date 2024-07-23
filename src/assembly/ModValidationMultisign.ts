@@ -1,15 +1,12 @@
-import { System, Storage, authority, Protobuf, value, Arrays, Base58 } from "@koinos/sdk-as";
+import { System, Storage, authority, Protobuf, value } from "@koinos/sdk-as";
 import { modvalidation, ModValidation, MODULE_VALIDATION_TYPE_ID } from "@veive/mod-validation-as";
 import { modvalidationmultisign } from "./proto/modvalidationmultisign";
 import { IAccount, account } from "@veive/account-as";
 
-const CONFIG_SPACE_ID = 1;
+const THRESHOLD_SPACE_ID = 1;
 const ACCOUNT_SPACE_ID = 2;
 const GUARDIANS_SPACE_ID = 3;
 const DEFAULT_CONFIG_THRESHOLD: u32 = 1;
-const DEFAULT_ONLY_ENTRY_POINTS: u32[] = [
-  1090552691 // "allow"
-];
 
 export class ModValidationMultisign extends ModValidation {
   callArgs: System.getArgumentsReturn | null;
@@ -25,13 +22,13 @@ export class ModValidationMultisign extends ModValidation {
       () => new modvalidationmultisign.account_id()
     );
 
-  config_storage: Storage.Obj<modvalidationmultisign.config_storage> =
+  threshold: Storage.Obj<modvalidationmultisign.threshold> =
     new Storage.Obj(
       this.contractId,
-      CONFIG_SPACE_ID,
-      modvalidationmultisign.config_storage.decode,
-      modvalidationmultisign.config_storage.encode,
-      () => new modvalidationmultisign.config_storage()
+      THRESHOLD_SPACE_ID,
+      modvalidationmultisign.threshold.decode,
+      modvalidationmultisign.threshold.encode,
+      () => new modvalidationmultisign.threshold()
     );
 
   guardians: Storage.Map<Uint8Array, modvalidationmultisign.guardian> = new Storage.Map(
@@ -52,106 +49,41 @@ export class ModValidationMultisign extends ModValidation {
     const result = new modvalidation.is_valid_operation_result(true);
     let valid_signatures: u32 = 0;
 
-    if (
-      this.config_storage &&
-      this.config_storage.get() &&
-      this.config_storage.get()!.only_entry_points &&
-      (
-        this.config_storage.get()!.only_entry_points.length == 0 ||
-        this.config_storage.get()!.only_entry_points.includes(args.operation!.entry_point)
-      )
-    ) {
-      const i_account = new IAccount(this.account_id.get()!.value!);
-      const sig_bytes = System.getTransactionField("signatures")!.message_value!.value!;
-      const signatures = Protobuf.decode<value.list_type>(sig_bytes, value.list_type.decode).values;
-      const tx_id = System.getTransactionField("id")!.bytes_value;
+    const i_account = new IAccount(this.account_id.get()!.value!);
+    const sig_bytes = System.getTransactionField("signatures")!.message_value!.value!;
+    const signatures = Protobuf.decode<value.list_type>(sig_bytes, value.list_type.decode).values;
+    const tx_id = System.getTransactionField("id")!.bytes_value;
 
-      for (let i = 0; i < signatures.length; i++) {
-        const signature = signatures[i].bytes_value;
+    const guardians = this.guardians.getManyKeys(new Uint8Array(0));
+
+    for (let i = 0; i < signatures.length; i++) {
+      const signature = signatures[i].bytes_value;
+      
+      for (let j = 0; j < guardians.length; j++) {
         const valid = i_account.is_valid_signature(new account.is_valid_signature_args(
-          this.account_id.get()!.value!,
+          guardians[j],
           signature,
           tx_id
         ));
-
+  
         if (valid.value == true) {
           valid_signatures = valid_signatures + 1;
         }
       }
+    }
 
-      const threshold = this.config_storage.get()!.threshold;
-      if (
-        (threshold == 0 && valid_signatures != signatures.length) ||
-        (threshold > 0 && valid_signatures < threshold)
-      ) {
-        result.value = false;
-        System.log(`[mod-validation-multisign] check signature failed`);
-      } else {
-        System.log(`[mod-validation-multisign] check signature succeeded`);
-      }
-
+    const threshold = this.threshold.get()!.value;
+    if (
+      (threshold == 0 && valid_signatures != signatures.length) ||
+      (threshold > 0 && valid_signatures < threshold)
+    ) {
+      result.value = false;
+      System.log(`[mod-validation-multisign] check signature failed`);
     } else {
-      System.log(`[mod-validation-multisign] check signature skipped`);
+      System.log(`[mod-validation-multisign] check signature succeeded`);
     }
 
     return result;
-  }
-
-  /**
-   * Adds an antry point to skip list
-   * @external
-   */
-  add_only_entry_point(args: modvalidationmultisign.add_only_entry_point_args): void {
-    const is_authorized = System.checkAuthority(authority.authorization_type.contract_call, this._get_account_id());
-    System.require(is_authorized, `not authorized by the account`);
-
-    const config = this.config_storage.get()!;
-
-    // Check for duplicates
-    for (let i = 0; i < config.only_entry_points.length; i++) {
-      if (config.only_entry_points[i] == args.entry_point) {
-        System.log("Entry point already exists");
-        return;
-      }
-    }
-
-    // Add new entry
-    config.only_entry_points.push(args.entry_point);
-    this.config_storage.put(config);
-  }
-
-  /**
-   * Removes an antry point from skips
-   * @external
-   */
-  remove_only_entry_point(args: modvalidationmultisign.remove_only_entry_point_args): void {
-    const is_authorized = System.checkAuthority(authority.authorization_type.contract_call, this._get_account_id());
-    System.require(is_authorized, `not authorized by the account`);
-
-    const config = this.config_storage.get();
-    System.require(config != null, "Configuration not found");
-
-    const new_only_entry_points: u32[] = [];
-
-    for (let i = 0; i < config!.only_entry_points.length; i++) {
-      if (config!.only_entry_points[i] != args.entry_point) {
-        new_only_entry_points.push(config!.only_entry_points[i]);
-      }
-    }
-
-    config!.only_entry_points = new_only_entry_points;
-    this.config_storage.put(config!);
-  }
-
-  /**
-   * Reads the only_entry_points
-   * @external
-   * @readonly
-   */
-  get_only_entry_points(): modvalidationmultisign.get_only_entry_points_result {
-    const config = this.config_storage.get();
-    System.require(config != null, "Configuration not found");
-    return new modvalidationmultisign.get_only_entry_points_result(config!.only_entry_points);
   }
 
   /**
@@ -161,9 +93,9 @@ export class ModValidationMultisign extends ModValidation {
     const is_authorized = System.checkAuthority(authority.authorization_type.contract_call, this._get_account_id());
     System.require(is_authorized, `not authorized by the account`);
 
-    const config = this.config_storage.get()! || new modvalidationmultisign.config_storage();
-    config.threshold = args.value;
-    this.config_storage.put(config);
+    const threshold = this.threshold.get()! || new modvalidationmultisign.threshold();
+    threshold.value = args.value;
+    this.threshold.put(threshold);
   }
 
   /**
@@ -172,7 +104,7 @@ export class ModValidationMultisign extends ModValidation {
    */
   get_threshold(): modvalidationmultisign.get_threshold {
     const result = new modvalidationmultisign.get_threshold();
-    result.value = this.config_storage.get()!.threshold;
+    result.value = this.threshold.get()!.value;
     return result;
   }
 
@@ -184,10 +116,9 @@ export class ModValidationMultisign extends ModValidation {
     account.value = System.getCaller().caller;
     this.account_id.put(account);
 
-    const config = new modvalidationmultisign.config_storage();
-    config.only_entry_points = DEFAULT_ONLY_ENTRY_POINTS;
-    config.threshold = DEFAULT_CONFIG_THRESHOLD;
-    this.config_storage.put(config);
+    const threshold = new modvalidationmultisign.threshold();
+    threshold.value = DEFAULT_CONFIG_THRESHOLD;
+    this.threshold.put(threshold);
 
     System.log('[mod-validation-multisign] called on_install');
   }

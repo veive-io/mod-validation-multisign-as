@@ -5,6 +5,7 @@ import { randomBytes } from "crypto";
 import { beforeAll, afterAll, it, expect } from "@jest/globals";
 import * as modAbi from "../build/modvalidationmultisign-abi.json";
 import * as modSignEcdsaAbi from "../node_modules/@veive/mod-sign-ecdsa-as/dist/modsignecdsa-abi.json";
+import * as modValidationSignatureAbi from "../node_modules/@veive/mod-validation-signature-as/dist/modvalidationsignature-abi.json";
 import * as accountAbi from "@veive/account-as/dist/account-abi.json";
 import * as dotenv from "dotenv";
 
@@ -20,11 +21,29 @@ const modMultisign = new Signer({
   provider,
 });
 
-const modMultisignContract = new Contract({
+const mod = new Contract({
   id: modMultisign.getAddress(),
   abi: modAbi,
   provider,
-}).functions;
+});
+
+const modMultisignContract = mod.functions;
+const modMultisignSerializer = mod.serializer;
+
+const modValidationSignatureSign = new Signer({
+  privateKey: randomBytes(32).toString("hex"),
+  provider,
+});
+
+const modValidationSignature = new Contract({
+  id: modMultisign.getAddress(),
+  abi: modValidationSignatureAbi,
+  provider,
+});
+
+const modValidationSignatureContract = modValidationSignature.functions;
+const modValidationSignatureSerializer = modValidationSignature.serializer;
+
 
 const account1Sign = new Signer({
   privateKey: randomBytes(32).toString("hex"),
@@ -100,6 +119,13 @@ beforeAll(async () => {
     tokenSign.getPrivateKey("wif"),
     path.join(__dirname, "../node_modules/@koinosbox/contracts/assembly/token/release/token.wasm"),
     utils.tokenAbi
+  );
+
+  // deploy module validation signature account 1
+  await localKoinos.deployContract(
+    modValidationSignatureSign.getPrivateKey("wif"),
+    path.join(__dirname, "../node_modules/@veive/mod-validation-signature-as/dist/release/ModValidationSignature.wasm"),
+    modValidationSignatureAbi
   );
 
   // deploy module multisign account 1
@@ -180,19 +206,20 @@ async function _install_mod_ecdsa(modSign: Signer, accountSign: Signer) {
 }
 
 
-it("install module multisign in account 1", async() => {
-  const accountContract = new Contract({
-    id: account1Sign.getAddress(),
-    abi: accountAbi,
-    provider,
-  }).functions;
+it("install module validation-signature in account 1, scope default (any operation)", async() => {
+  const scope = await modValidationSignatureSerializer.serialize({
+    entry_point: 1
+  }, "scope");
 
-  const { operation: install_module } = await accountContract["install_module"]({
+  const { operation: install_module } = await account1Contract["install_module"]({
     module_type_id: 1,
-    contract_id: modMultisign.getAddress()
+    contract_id: modValidationSignatureSign.address,
+    scopes: [
+      utils.encodeBase64url(scope)
+    ]
   }, { onlyOperation: true });
   
-  const { operation: exec } = await accountContract["execute_user"]({
+  const { operation: exec } = await account1Contract["execute_user"]({
     operation: {
       contract_id: install_module.call_contract.contract_id,
       entry_point: install_module.call_contract.entry_point,
@@ -210,6 +237,41 @@ it("install module multisign in account 1", async() => {
   await tx.wait();
 
   expect(receipt).toBeDefined();
+  expect(receipt.logs).toContain("[mod-validation-signature] called on_install");
+});
+
+it("install module multisign in account 1, scope (entrypoint=transfer)", async() => {
+  const scope = await modMultisignSerializer.serialize({
+    entry_point: 670398154
+  }, "scope")
+
+  const { operation: install_module } = await account1Contract["install_module"]({
+    module_type_id: 1,
+    contract_id: modMultisign.address,
+    scopes: [
+      utils.encodeBase64url(scope)
+    ]
+  }, { onlyOperation: true });
+  
+  const { operation: exec } = await account1Contract["execute_user"]({
+    operation: {
+      contract_id: install_module.call_contract.contract_id,
+      entry_point: install_module.call_contract.entry_point,
+      args: install_module.call_contract.args
+    }
+  }, { onlyOperation: true });
+
+  const tx = new Transaction({
+    signer: account1Sign,
+    provider
+  });
+
+  await tx.pushOperation(exec);
+  const receipt = await tx.send();
+  await tx.wait();
+
+  expect(receipt).toBeDefined();
+  expect(receipt.logs).toContain("[mod-validation-multisign] called on_install");
 });
 
 it("user adds guardian1,guardian2 as this guardians", async () => {
@@ -225,33 +287,17 @@ it("user adds guardian1,guardian2 as this guardians", async () => {
     address: guardian2Sign.address
   }, { onlyOperation: true });
 
-  //set allowances operation
-  /*const { operation: setAllowances } = await account1Contract['set_allowances']({
-    allowances: [
-      {
-        type: allowanceAccount.address,
-        contract_id: op1.call_contract.contract_id,
-        entry_point: op1.call_contract.entry_point,
-        data: op1.call_contract.args
-      },
-      {
-        type: allowanceAccount.address,
-        contract_id: op2.call_contract.contract_id,
-        entry_point: op2.call_contract.entry_point,
-        data: op2.call_contract.args
-      }
-    ]
-  }, { onlyOperation: true });*/
-
   //send operations
   const tx = new Transaction({
     signer: account1Sign,
     provider
   });
-  await tx.pushOperation(setAllowances);
+  //await tx.pushOperation(setAllowances);
   await tx.pushOperation(op1);
   await tx.pushOperation(op2);
   const rc = await tx.send();
+
+  console.log(rc);
 
   expect(rc).toBeDefined();
   await tx.wait();
@@ -263,28 +309,13 @@ it("user adds guardian1,guardian2 as this guardians", async () => {
   expect(result.value.length).toStrictEqual(2);
 });
 
-/*
+
 it("guardian1, guardian2 transfer user's tokens", async () => {
   // prepare transfer operation
   const { operation: transfer } = await tokenContract['transfer']({
     from: account1Sign.address,
     to: account2Sign.address,
     value: "1",
-  }, { onlyOperation: true });
-
-  // prepare allowances
-  const allowances = [
-    {
-      type: allowanceAccount.address,
-      contract_id: transfer.call_contract.contract_id,
-      entry_point: transfer.call_contract.entry_point,
-      data: transfer.call_contract.args
-    }
-  ];
-
-  // prepare set allowances operation
-  const { operation: setAllowances } = await account1Contract['set_allowances']({
-    allowances
   }, { onlyOperation: true });
 
   // send operations
@@ -298,7 +329,6 @@ it("guardian1, guardian2 transfer user's tokens", async () => {
     }
   });
 
-  await tx.pushOperation(setAllowances);
   await tx.pushOperation(transfer);
   const rc = await tx.send();
 
@@ -328,24 +358,12 @@ it("user removes guardian1", async () => {
     address: guardian2Sign.address
   }, { onlyOperation: true });
 
-  //set allowances operation
-  const { operation: setAllowances } = await account1Contract['set_allowances']({
-    allowances: [
-      {
-        type: allowanceAccount.address,
-        contract_id: removeGuardian.call_contract.contract_id,
-        entry_point: removeGuardian.call_contract.entry_point,
-        data: removeGuardian.call_contract.args
-      }
-    ]
-  }, { onlyOperation: true });
-
   //send operations
   const tx = new Transaction({
     signer: account1Sign,
     provider
   });
-  await tx.pushOperation(setAllowances);
+
   await tx.pushOperation(removeGuardian);
   const rc = await tx.send();
 
@@ -358,39 +376,3 @@ it("user removes guardian1", async () => {
 
   expect(result.value.length).toStrictEqual(1);
 });
-
-
-it("unregister plugin multisign in user account", async () => {
-  //unregister plugin operation
-  const { operation: unregisterPlugin } = await account1Contract['unregister_plugin']({
-    contract_id: modMultisign.address
-  }, { onlyOperation: true });
-
-  //set allowances operation
-  const { operation: setAllowances } = await account1Contract['set_allowances']({
-    allowances: [
-      {
-        type: allowanceAccount.address,
-        contract_id: unregisterPlugin.call_contract.contract_id,
-        entry_point: unregisterPlugin.call_contract.entry_point,
-        data: unregisterPlugin.call_contract.args
-      }
-    ]
-  }, { onlyOperation: true });
-
-  //send operations
-  const tx = new Transaction({
-    signer: account1Sign,
-    provider
-  });
-  await tx.pushOperation(setAllowances);
-  await tx.pushOperation(unregisterPlugin);
-  const rc = await tx.send();
-  await tx.wait();
-  
-  expect(rc).toBeDefined();
-
-  const { result } = await account1Contract["get_plugins"]();
-  expect(result).toBeUndefined();
-});
-*/
