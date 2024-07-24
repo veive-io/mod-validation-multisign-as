@@ -7,6 +7,8 @@ const THRESHOLD_SPACE_ID = 1;
 const ACCOUNT_SPACE_ID = 2;
 const GUARDIANS_SPACE_ID = 3;
 const DEFAULT_CONFIG_THRESHOLD: u32 = 1;
+const INSTALL_MODULE_ENTRY_POINT = 3730713190;
+const UNINSTALL_MODULE_ENTRY_POINT = 2537446827;
 
 export class ModValidationMultisign extends ModValidation {
   callArgs: System.getArgumentsReturn | null;
@@ -132,6 +134,10 @@ export class ModValidationMultisign extends ModValidation {
     result.name = "Signature validator";
     result.description = "Module to validate transaction signature";
     result.type_id = MODULE_VALIDATION_TYPE_ID;
+    result.scopes = [
+      new modvalidation.scope(INSTALL_MODULE_ENTRY_POINT),
+      new modvalidation.scope(UNINSTALL_MODULE_ENTRY_POINT)
+    ];
     return result;
   }
 
