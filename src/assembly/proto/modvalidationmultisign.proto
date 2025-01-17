@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+package modvalidationmultisign;
+
+import "koinos/options.proto";
+
+message threshold {
+   uint32 value = 1;
+}
+
+message set_threshold_args {
+   bytes user = 1 [(koinos.btype) = ADDRESS];
+   uint32 value = 2;
+}
+
+message get_threshold_args {
+   bytes user = 1 [(koinos.btype) = ADDRESS];
+   uint32 value = 2;
+}
+
+message get_threshold_result {
+   uint32 value = 1;
+}
+
+message guardians {
+   repeated bytes value = 1 [(koinos.btype) = ADDRESS];
+}
+
+message add_guardian_args {
+   bytes user = 1 [(koinos.btype) = ADDRESS];
+   bytes address = 2 [(koinos.btype) = ADDRESS];
+}
+
+message remove_guardian_args {
+   bytes user = 1 [(koinos.btype) = ADDRESS];
+   bytes address = 2 [(koinos.btype) = ADDRESS];
+}
+
+message get_guardians_args {
+   bytes user = 1 [(koinos.btype) = ADDRESS];
+}
+
+message get_guardians_result {
+   repeated bytes value = 1;
+}
