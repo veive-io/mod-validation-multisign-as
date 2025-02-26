@@ -4,6 +4,8 @@
 
 `ModValidationMultisign` is a versatile validation module within the Veive protocol, designed to handle multi-signature validation scenarios. This module can be applied in various contexts, such as wallet multi-ownership and account recovery, by utilizing a set of designated signatories known as "guardians." Its flexibility allows the module to support different use cases depending on the scope in which it is installed. The module is agnostic to the signature method, meaning guardians can use different signing methods without affecting the module's functionality.
 
+Full documentation: https://docs.veive.io/veive-docs/framework/core-modules/mod-validation-multisign
+
 ## **Purpose**
 
 The primary function of `ModValidationMultisign` is to validate operations by requiring multiple signatures from designated guardians. This feature is crucial for scenarios such as:
