@@ -6,19 +6,6 @@
 
 Full documentation: https://docs.veive.io/veive-docs/framework/core-modules/mod-validation-multisign
 
-## **Purpose**
-
-The primary function of `ModValidationMultisign` is to validate operations by requiring multiple signatures from designated guardians. This feature is crucial for scenarios such as:
-
-1. **Account Multi-ownership**: In this context, the module ensures that all owners (guardians) must approve transactions. By installing the module in the `entry_point=allow` scope, every operation requires pre-authorization from all guardians, providing a robust layer of security.
-
-2. **Account Recovery**: The module can also be used to recover access to an account. If the primary owner loses access, the guardians can authorize the installation or removal of modules (such as replacing a lost device's public key in a WebAuthn module). This is achieved by configuring the module to validate operations in the `install_module` and `uninstall_module` scopes.
-
-### **Guardian Management and Thresholds**
-
-- **Guardians**: Guardians are designated signatories who can validate operations. The module includes functions to add or remove guardians, making it adaptable to changing security needs.
-- **Threshold**: A key feature is the ability to set a threshold, determining how many guardian signatures are required to validate an operation. This threshold can be configured for different security levels, allowing for scenarios where, for example, only a subset of guardians is needed to authorize an action.
-
 ## **Usage**
 
 ### **Installation**
